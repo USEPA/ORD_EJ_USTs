@@ -378,19 +378,23 @@ for(n in 25:32){
   }
 }
 
-write.csv(stats_out, here("figures/national/National_Density_EJ_Stats.csv"))
+write.csv(stats_out, here("data/Created/National_Density_EJ_Stats.csv"))
 
 
 #############################################
 ## Run Analysis for every individual state ##
 #############################################
 
-for (state in unique(bins$STATE_NAME)) {
+states <- unique(bins%>%
+  filter(!STATE_NAME == "Puerto Rico")%>%
+    select(STATE_NAME))
+
+for (state in states) {
   stateFilt <- bins%>%
     filter(STATE_NAME == state)
   
   # CREATE LABELS FOR PLOTS
-  xlabels <- data.frame(Var = colnames(bins)[19:32],
+  xlabels <- data.frame(Var = colnames(bins)[25:38],
                         xLabel = c("Percentile Minority (National)","Percentile Low Income (National)", "Perecntile Less Than High School (National)",
                                    "Percentile Linguistically Isolated (National)","Percentile Under 5 (National)","Percentile Over 64 (National)",
                                    "Percentile Minority & Low-Income (National)","Percentile Minority (State)","Percentile Low Income (State)",
@@ -398,21 +402,21 @@ for (state in unique(bins$STATE_NAME)) {
                                    "Percentile Linguistically Isolated (State)","Percentile Under 5 (State)","Percentile Over 64 (State)",
                                    "Percentile Minority & Low-Income (State)"))
   
-  ylabels <- data.frame(Var = colnames(bins)[33:36],
+  ylabels <- data.frame(Var = colnames(bins)[39:42],
                         yLabel = c("Number of Facilities","Number of Releases","Number of Tanks","Capacity - Gallons"))
   
-  # Create empty data frame to write to
+    # Create empty data frame to write to
   stats_out <- data.frame()
   
-  for(n in 19:32){
+  for(n in 25:38){
     xVar <- colnames(stateFilt)[n] #Select X Variable (Percentiles)
     xVals <- stateFilt[,n] # Extract values from selected x variable
-    for (i in 33:36) {
+    for (i in 39:42) {
       yVar <- colnames(stateFilt)[i] # Select Y variable (UST Variables)
       yVals <- stateFilt[,i] # Extract values for UST variables
       newDf <- data.frame(xVal = xVals, yVal = yVals)%>% # Create a new data frame with x and y values
         drop_na()
-      
+      colnames(newDf) <- c("xVal","yVal")
       stats <- newDf%>%
         group_by(xVal)%>% # Group by the bin and compute stats
         mutate(First_Quart = quantile(yVal,.25, na.rm = TRUE),
@@ -432,8 +436,8 @@ for (state in unique(bins$STATE_NAME)) {
       stats_out <- rbind(stats_out,stats)
       
       # Provide variable names for the output dataset
-      xlab <- xlabels$xLabel[n-18]
-      ylab <- ylabels$yLabel[i-33]
+      xlab <- xlabels$xLabel[n-24]
+      ylab <- ylabels$yLabel[i-38]
       
       print(paste0("Plotting ",state,": ", yVar,"_by_",xVar," --- ",Sys.time()))
       
@@ -448,12 +452,90 @@ for (state in unique(bins$STATE_NAME)) {
                xaxis = list(title = "Percentile Bin"),
                font = list(family = "sans serif", size = 18, color = 'black'))
 
-      dir.create( paste0(here("projects/EJ/Article/figures/state",state)), showWarnings = FALSE) # Create folder if it doesn't exist
-      orca(p, file = paste0("projects/EJ/Article/figures/state","/",state,"/",state,"_",yVar,"_by_",xVar,".png"))
+      dir.create( paste0(here("figures/state",state)), showWarnings = FALSE) # Create folder if it doesn't exist
+      save_image(p, file = paste0(here("figures/state"),"/",state,"/",state,"_",yVar,"_by_",xVar,".png"))
       
     }
   }
   
-  write.csv(stats_out,paste0(here("projects/EJ/Article/data/state_stats"),"/",state,"/",state,"_EJ_Bin_Stats.csv"))
+  dir.create(paste0(here("data/Created/state_stats"),"/",state), showWarnings = TRUE) # Create folder if it doesn't exist
+  write.csv(stats_out,paste0(here("data/Created/state_stats"),"/",state,"/",state,"_EJ_Bin_Stats.csv"))
   
+  print(paste0("Completed ",state," --- ",Sys.time()))
 }
+
+# Run for Puerto Rico
+stateFilt <- bins%>%
+  filter(STATE_NAME == "Puerto Rico")
+
+# CREATE LABELS FOR PLOTS
+xlabels <- data.frame(Var = colnames(bins)[32:38],
+                      xLabel = c("Percentile Minority (State)",
+                                 "Percentile Low Income (State)",
+                                 "Perecntile Less Than High School (State)",
+                                 "Percentile Linguistically Isolated (State)",
+                                 "Percentile Under 5 (State)",
+                                 "Percentile Over 64 (State)",
+                                 "Percentile Minority & Low-Income (State)"))
+
+ylabels <- data.frame(Var = colnames(bins)[39:42],
+                      yLabel = c("Number of Facilities","Number of Releases","Number of Tanks","Capacity - Gallons"))
+
+# Create empty data frame to write to
+stats_out <- data.frame()
+
+for(n in 32:38){
+  xVar <- colnames(stateFilt)[n] #Select X Variable (Percentiles)
+  xVals <- stateFilt[,n] # Extract values from selected x variable
+  for (i in 39:42) {
+    yVar <- colnames(stateFilt)[i] # Select Y variable (UST Variables)
+    yVals <- stateFilt[,i] # Extract values for UST variables
+    newDf <- data.frame(xVal = xVals, yVal = yVals)%>% # Create a new data frame with x and y values
+      drop_na()
+    colnames(newDf) <- c("xVal","yVal")
+    stats <- newDf%>%
+      group_by(xVal)%>% # Group by the bin and compute stats
+      mutate(First_Quart = quantile(yVal,.25, na.rm = TRUE),
+             Median = median(yVal, na.rm = TRUE),
+             Third_Quart = quantile(yVal,.75, na.rm = TRUE),
+             IQR = Third_Quart - First_Quart)%>%
+      ungroup()%>%
+      as.data.frame()%>%
+      mutate(X_Var = substr(xVar,1,nchar(xVar)-4),
+             Y_Var = yVar)%>%
+      select(xVal,X_Var,Y_Var,First_Quart,Median,Third_Quart,IQR)%>%
+      distinct()
+    colnames(stats) <- c("Bin","X_Var","Y_Var","Q1","Median","Q3","IQR")
+    
+    stats$State <- state
+    
+    stats_out <- rbind(stats_out,stats)
+    
+    # Provide variable names for the output dataset
+    xlab <- xlabels$xLabel[n-31]
+    ylab <- ylabels$yLabel[i-38]
+    
+    print(paste0("Plotting ",state,": ", yVar,"_by_",xVar," --- ",Sys.time()))
+    
+    
+    ## Using Plotly, create output plots for every combination of X and Y variables
+    
+    p <- plot_ly(newDf)%>%
+      add_boxplot(x = ~xVal, y = ~yVal, marker = list(opacity=0), line = list(color = 'black'), fillcolor = '#a3a3a3')%>%
+      layout(title = list(text = paste0(state," ",ylab," by<br>",xlab), font = list(family = "sans serif", size = 24, color = 'black'), y = 0.9),
+             yaxis = list(title = paste0(ylab,"  [km<sup>2</sup>]") ,range = c(0, (max(stats$IQR)*1.5)+max(stats$Q3)+1),
+                          font = list(family = "sans serif", size = 18, color = 'black')),
+             xaxis = list(title = "Percentile Bin"),
+             font = list(family = "sans serif", size = 18, color = 'black'))
+    
+    dir.create( paste0(here("figures/state",state)), showWarnings = FALSE) # Create folder if it doesn't exist
+    save_image(p, file = paste0(here("figures/state"),"/",state,"/",state,"_",yVar,"_by_",xVar,".png"))
+    
+  }
+}
+
+dir.create(paste0(here("data/Created/state_stats"),"/",state), showWarnings = TRUE) # Create folder if it doesn't exist
+write.csv(stats_out,paste0(here("data/Created/state_stats"),"/",state,"/",state,"_EJ_Bin_Stats.csv"))
+
+print(paste0("Completed ",state," --- ",Sys.time()))
+
