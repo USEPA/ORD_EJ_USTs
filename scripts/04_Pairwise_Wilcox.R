@@ -1,3 +1,6 @@
+# This script took me about 20 hours to run completely, so be sure
+# you have the time to let it run.
+
 library(tidyverse)
 library(plotly)
 library(rstatix)
