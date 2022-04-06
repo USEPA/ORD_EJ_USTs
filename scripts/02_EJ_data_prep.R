@@ -39,10 +39,10 @@ bgbuf <- st_buffer(sf, 457.2)%>% # 457.2 meters = 1,500 ft.
   st_transform(5070)
 
 # Save buffers
-st_write(bgbuf, here("data/Created/Buffers/Buffers.gpkg"), layer = "BlockGroups_1500ft", append = FALSE) #save the buffers as a shapefile
+st_write(bgbuf, here("data/Created/Spatial/Buffers.gpkg"), layer = "BlockGroups_1500ft", append = FALSE) #save the buffers as a shapefile
 
 # Import buffers if you have previously run this script to save time
-#bgbuf <- st_read(here("data/Created/Buffers/Buffers.gpkg"), layer = "BlockGroups_1500ft")
+#bgbuf <- st_read(here("data/Created/Spatial/Buffers.gpkg"), layer = "BlockGroups_1500ft")
 
 # Intersect Facilities with block groups
 facSf <- facilities%>%

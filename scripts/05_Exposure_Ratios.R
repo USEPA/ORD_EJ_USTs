@@ -2,7 +2,7 @@
 # https://www.ineteconomics.org/uploads/papers/WP12-Boyce-et-al.pdf
 
 library(tidyverse)
-#library(sf)
+library(sf)
 library(vroom)
 library(here)
 
@@ -53,12 +53,12 @@ for (n in 39:42) {
 write.csv(allTracts, here("data/Created/Exposure_Ratios_Tracts.csv"))
 
 
-# Calculate Boyce Ratio for Counties
+# Calculate Exposure Ratios for Counties
 allCounties <- allbgs%>%
   select(GIS_County)%>%
   distinct()
 
-for (n in 32:34) {
+for (n in 39:42) {
   ei <- allbgs%>%
     select(GIS_County,colnames(allbgs)[n],Population,MINORPCT, LOWINCPCT, LESSHSPCT, LINGISOPCT, UNDER5PCT, OVER64PCT, VULEOPCT)
   for (i in 4:10) {
@@ -88,15 +88,15 @@ for (n in 32:34) {
     print(paste0("Completed ",colnames(ei)[2]," with ",colnames(ei)[i], " at: ",Sys.time()))
   }
 }
-allCounties[is.na(allCounties)] <- 1
-write.csv(allCounties, here("projects/EJ/Article/data/Boyce/All_Boyce_Counties_Both.csv"))
+# Save results
+write.csv(allCounties, here("data/Created/Exposure_Ratios_Counties.csv"))
 
 # Calculate Boyce Ratio for States
 allStates <- allbgs%>%
   select(GIS_State)%>%
   distinct()
 
-for (n in 32:34) {
+for (n in 39:42) {
   ei <- allbgs%>%
     select(GIS_State,colnames(allbgs)[n],Population,MINORPCT, LOWINCPCT, LESSHSPCT, LINGISOPCT, UNDER5PCT, OVER64PCT, VULEOPCT)
   for (i in 4:10) {
@@ -125,13 +125,14 @@ for (n in 32:34) {
     print(paste0("Completed ",colnames(ei)[2]," with ",colnames(ei)[i], " at: ",Sys.time()))
   }
 }
-allStates[is.na(allStates)] <- 1
-write.csv(allStates, here("projects/EJ/Article/data/Boyce/All_Boyce_States.csv"))
-
+# Save results
+write.csv(allStates, here("data/Created/Exposure_Ratios_States.csv"))
 
 
 # MSAs - These are done a bit differently as we need to run an intersection on block groups first
-msa <- st_read("D:/data/nhgis/Boundaries.gdb", layer = "US_cbsa_2019")%>%
+# If you want to run this code you will need to download the US_cbsa_2019 layer
+# with a population field (ALUBE001) from NHGIS.org
+msa <- st_read(here("data/NHGIS/MSAs.gpkg"), layer = "US_cbsa_2019")%>%
   mutate(Area_Type = substr(NAMELSAD,nchar(NAMELSAD)-9,nchar(NAMELSAD)))%>%
   select(GISJOIN, NAME, ALUBE001, Area_Type)%>%
   st_transform(5070)
@@ -144,16 +145,16 @@ metro <- msa%>%
 
 
 # Import the spatial block groups and join attributes
-sf <- st_read("D:/data/EJ/EJSCREEN_2020_USPR.gdb", layer = "EJSCREEN_Full")%>%
+sf <- st_read(here("data/EJScreen/EJSCREEN_2020_USPR.gdb"), layer = "EJSCREEN_Full")%>%
   select(ID)%>%
   left_join(allbgs)%>%
   st_transform(5070)
 
 intersect <- st_intersection(st_make_valid(sf), st_make_valid(metro))
-colnames(intersect)[39] <- "GIS_MSA"
-st_write(intersect, here("projects/EJ/Article/data/MSA_Intersect.shp"))
+colnames(intersect)[46] <- "GIS_MSA"
+st_write(intersect, here("data/Created/Spatial/MSA_Intersect.gpkg"), layer = "MSA_Intersect")
 
-# Calculate Boyce Ratio for States
+# Calculate Exposure Ratio for States
 allMSAs <- intersect%>%
   st_drop_geometry()%>%
   select(GIS_MSA)%>%
@@ -163,7 +164,7 @@ msaClean <- intersect%>%
   st_drop_geometry()%>%
   distinct()
 
-for (n in 32:34) {
+for (n in 39:42) {
   ei <- msaClean%>%
     select(GIS_MSA,colnames(msaClean)[n],Population,MINORPCT, LOWINCPCT, LESSHSPCT, LINGISOPCT, UNDER5PCT, OVER64PCT, VULEOPCT)
   for (i in 4:10) {
@@ -192,10 +193,7 @@ for (n in 32:34) {
     print(paste0("Completed ",colnames(ei)[2]," with ",colnames(ei)[i], " at: ",Sys.time()))
   }
 }
-
-# Replace NA values with 1 (Perfect equity)
-allMSAs[is.na(allMSAs)] <- 1
-
-write.csv(allMSAs, here("projects/EJ/Article/data/Boyce/All_Boyce_MSAs.csv"))
+# Save Results
+write.csv(allMSAs, here("data/Created/Exposure_Ratios_MSAs.csv"))
 
 
