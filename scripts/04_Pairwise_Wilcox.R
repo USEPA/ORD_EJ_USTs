@@ -1,8 +1,8 @@
 library(tidyverse)
 library(plotly)
-library(trend)
+#library(trend)
 library(rstatix)
-library(aod)
+#library(aod)
 library(here)
 library(colorspace)
 library(vroom)
@@ -12,14 +12,13 @@ library(vroom)
 ####################
 
 ## National ##
-allbgs <- vroom(here("projects/EJ/Article/data/BGs_All_Attributes_fix.csv"))%>%
-  drop_na(Facility_km, Releases_km, Tanks_km)%>%
-  select(GISJOIN:Tanks_km)
+allbgs <- vroom(here("data/Created/BlkGrps_Bins.tsv"))%>%
+  drop_na(Facility_km, Releases_km, Tanks_km)
 
 usPW <- data.frame()
 
-for (n in 18:31) { # Iterate through demographic indicators
-  for (i in 32:34) { # Iterate through UST measures
+for (n in 25:38) { # Iterate through demographic indicators
+  for (i in 39:42) { # Iterate through UST measures
     sub <- allbgs[,c(n,i)]%>%
       arrange(.[[1]])
     colnames(sub) <- c("Bin","Density")
@@ -61,8 +60,8 @@ for (n in 18:31) { # Iterate through demographic indicators
   }
 }
 
-write.csv(usPW, here("projects/EJ/Article/data/national/US_Pairwise_Wilcox.csv"))
-#usPW <- read.csv(here("projects/EJ/Article/data/national/US_Pairwise_Wilcox.csv"))
+write.csv(usPW, here("data/Created/US_Pairwise_Wilcox.csv"))
+#usPW <- read.csv(here("data/Created/US_Pairwise_Wilcox.csv"))
 
 # Create Wilcox Plots
 usPW <- usPW%>%
@@ -85,7 +84,8 @@ p <- ggplot(usPWN)+
   guides(fill= guide_colorbar(barwidth=15))
 
 p
-ggsave(filename = here("projects/EJ/Article/figures/national/US_Pairwise_Wilcox_Nat_Pctiles.png"), plot = p, width = 14, height = 18, units = "in",dpi = 600)
+ggsave(filename = here("figures/national/US_Pairwise_Wilcox_NationalPctiles.png"),
+       plot = p, width = 14, height = 18, units = "in",dpi = 600)
 
 # State Percentiles
 usPWS <- usPW%>%
@@ -104,20 +104,24 @@ p2 <- ggplot(usPWS)+
   guides(fill= guide_colorbar(barwidth=15))
 
 p2
-ggsave(filename = here("projects/EJ/Article/figures/national/US_Pairwise_Wilcox_ST_Pctiles.png"), plot = p2, width = 14, height = 18, units = "in",dpi = 600)
+ggsave(filename = here("figures/national/US_Pairwise_Wilcox_StatePctiles.png"),
+       plot = p2, width = 14, height = 18, units = "in",dpi = 600)
 
 
 ## State by State ##
+states <- unique(allbgs%>%
+                   filter(!STATE_NAME == "Puerto Rico")%>%
+                   select(STATE_NAME))
+states <- states$STATE_NAME
 
-
-for(state in unique(allbgs$STATE_NAME)){
+for(state in states){
   stateFilt <- allbgs%>%
     filter(STATE_NAME == state)
   
   stPW <- data.frame() # Create empty data frame for each state
   
-  for (n in 25:31) { # Iterate through demographic indicators
-    for (i in 32:35) { # Iterate through UST measures
+  for (n in 25:38) { # Iterate through demographic indicators
+    for (i in 39:42) { # Iterate through UST measures
       sub <- stateFilt[,c(n,i)]%>%
         arrange(.[[1]])
       colnames(sub) <- c("Bin","Density")
@@ -173,30 +177,31 @@ for(state in unique(allbgs$STATE_NAME)){
   }
   
   # Write the stats when a state finishes
-  write.csv(stPW, paste0(here("projects/EJ/Article/data/state_stats"),"/",state,"/",state,"_Pairwise_Wilcox.csv"))
+  write.csv(stPW, paste0(here("data/Created/state_stats"),"/",state,"/",state,"_Pairwise_Wilcox.csv"))
   
   # Create a plot for each state
   
   # Using National Percentiles
   
-  # stPWN <- stPW%>%
-  #   filter(EJ_Cat == "N")
-  # 
-  # p3 <- ggplot(stPWN)+
-  #   geom_tile(aes(x = group1, y = group2, fill = effsize))+
-  #   geom_text(aes(x = group1, y = group2, label = p.adj.signif),color = "black", size = 4)+
-  #   scale_fill_continuous_divergingx(palette = "RdYlGn",rev = TRUE, mid = 0.1, l3 = 10, p3 = 2, p4 = .1)+
-  #   labs(title = "Pairwise Wilcox Effect Size Between Bin Pairs (National Percentiles)",
-  #        y = "Percentile Bin", x = "Percentile Bin")+
-  #   facet_wrap(~group, nrow = 7)+
-  #   theme(strip.text.x = element_text(size=12),
-  #         strip.background = element_rect(colour="black", fill="#bdbdbd"),
-  #         legend.position="bottom")+
-  #   guides(fill= guide_colorbar(barwidth=15))
-  # 
-  # #p3
-  # ggsave(filename = paste0(here("projects/EJ/Article/figures/state"),"/",state,"/",state,"_Pairwise_Wilcox_Nat_Pctiles.png"), plot = p3, width = 14, height = 18, units = "in",dpi = 600)
-  # print(paste0("Completed plot: ",state," - ",Sys.time()))
+  stPWN <- stPW%>%
+    filter(EJ_Cat == "N")
+
+  p3 <- ggplot(stPWN)+
+    geom_tile(aes(x = group1, y = group2, fill = effsize))+
+    geom_text(aes(x = group1, y = group2, label = p.adj.signif),color = "black", size = 4)+
+    scale_fill_continuous_divergingx(palette = "RdYlGn",rev = TRUE, mid = 0.1, l3 = 10, p3 = 2, p4 = .1)+
+    labs(title = "Pairwise Wilcox Effect Size Between Bin Pairs (National Percentiles)",
+         subtitle = state,
+         y = "Percentile Bin", x = "Percentile Bin")+
+    facet_wrap(~group, nrow = 7)+
+    theme(strip.text.x = element_text(size=12),
+          strip.background = element_rect(colour="black", fill="#bdbdbd"),
+          legend.position="bottom")+
+    guides(fill= guide_colorbar(barwidth=15))
+
+  #p3
+  ggsave(filename = paste0(here("figures/state"),"/",state,"/",state,"_Pairwise_Wilcox_NationalPctiles.png"), plot = p3, width = 14, height = 18, units = "in",dpi = 600)
+  print(paste0("Completed plot: ",state," - ",Sys.time()))
   
   # Using State Percentiles
   
@@ -208,6 +213,7 @@ for(state in unique(allbgs$STATE_NAME)){
     geom_text(aes(x = group1, y = group2, label = p.adj.signif),color = "black", size = 4)+
     scale_fill_continuous_divergingx(palette = "RdYlGn",rev = TRUE, mid = 0.1, l3 = 10, p3 = 2, p4 = .1)+
     labs(title = "Pairwise Wilcox Effect Size Between Bin Pairs (State Percentiles)",
+         subtitle = state,
          y = "Percentile Bin", x = "Percentile Bin")+
     facet_wrap(~group, nrow = 7)+
     theme(strip.text.x = element_text(size=12),
@@ -215,11 +221,9 @@ for(state in unique(allbgs$STATE_NAME)){
           legend.position="bottom")+
     guides(fill= guide_colorbar(barwidth=15))
   
-  p4
-  ggsave(filename = paste0(here("projects/EJ/Article/figures/state"),"/",state,"/",state,"_Pairwise_Wilcox_ST_Pctiles.png"), plot = p4, width = 14, height = 18, units = "in",dpi = 600)
+  #p4
+  ggsave(filename = paste0(here("figures/state"),"/",state,"/",state,"_Pairwise_Wilcox_StatePctiles.png"), plot = p4, width = 14, height = 18, units = "in",dpi = 600)
   print(paste0("Completed plot: ",state," - ",Sys.time()))
 }
 
-
-
-# State Percentiles
+# Puerto Rico state percentiles

@@ -388,6 +388,7 @@ write.csv(stats_out, here("data/Created/National_Density_EJ_Stats.csv"))
 states <- unique(bins%>%
   filter(!STATE_NAME == "Puerto Rico")%>%
     select(STATE_NAME))
+states <- states$STATE_NAME
 
 for (state in states) {
   stateFilt <- bins%>%

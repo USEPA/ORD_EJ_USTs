@@ -1,17 +1,15 @@
 library(tidyverse)
 library(plotly)
 library(trend)
-#library(rstatix)
 library(aod)
 library(here)
-
-
+library(vroom)
 
 ##########################
 # National Mann-Kendall ##
 ##########################
 
-us <- read.csv(here("projects/EJ/Article/figures/national/National_Density_EJ_Stats.csv"))
+us <- vroom(here("data/Created/National_Density_EJ_Stats.csv"))
 
 # Iterate through variable combinations and output tests to new data frame
 
@@ -39,23 +37,18 @@ for (x in unique(us$X_Var)) {
 }
 
 # Save National Mann-Kendall
-write.csv(usMK, here("projects/EJ/Article/data/national/National_Mann_Kendall1.csv"))
+write.csv(usMK, here("data/Created/National_Mann_Kendall.csv"))
 
 ################################
 # State by state Mann-Kendall ##
 ################################
 
 # Import all state stats and run the mann-kendall
-stfiles <- list.files(here("projects/EJ/Article/data/state_stats/"), pattern = "EJ_Bin_Stats.csv", recursive = TRUE, full.names = TRUE)
-
-stEJ <- data.frame()
-
-for (n in 1:length(stfiles)) { # Combine all states into one dataset
-  df <- read.csv(stfiles[n])
-  state <- str_split(stfiles[n], "/")[[1]][9]
-  df$State <- state
-  stEJ <- rbind(stEJ,df)
-}
+stFiles <- list.files(here("data/Created/state_stats/"),
+                      pattern = "EJ_Bin_Stats.csv",
+                      recursive = TRUE,
+                      full.names = TRUE)
+stEJ <- vroom(stFiles)
 
 ## Run MK iterator
 statesMK <- data.frame()
@@ -85,7 +78,7 @@ for (state in unique(stEJ$State)) {
 }
 
 ## Save Mann-Kendall results
-write.csv(statesMK, here("projects/EJ/Article/data/state_stats/All_States_Mann_Kendall.csv"))
+write.csv(statesMK, here("data/Created/All_States_Mann_Kendall.csv"))
 
 
 # Reference for MK:
