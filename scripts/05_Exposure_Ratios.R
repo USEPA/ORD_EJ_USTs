@@ -15,6 +15,15 @@ allbgs <- vroom(here("data/Created/BlkGrps_Bins.tsv"))%>%
          GIS_State = substr(GISJOIN,1,4),
          ID = as.character(ID))
 
+# Save a spatial file
+sf <- st_read(here("data/EJScreen/EJSCREEN_2020_USPR.gdb"), layer = "EJSCREEN_Full")%>%
+  mutate(GISJOIN = paste0("G",substr(ID,1,2),"0",substr(ID,3,5),"0",substr(ID,6,12)))%>%
+  select(GISJOIN)%>%
+  left_join(allbgs)
+
+st_write(sf, here("data/Created/Spatial/BlkGrp_Bins.gpkg"),
+         layer = "BlkGrp_Bins", append = FALSE)
+
 # Calculate Boyce Ratio for Tracts
 allTracts <- allbgs%>%
   select(GIS_Tract)%>%
@@ -26,6 +35,7 @@ for (n in 39:42) {
   for (i in 4:10) {
     boyce <- ei%>%
       select(GIS_Tract, colnames(ei)[2],Population,colnames(ei)[i])%>%
+      drop_na()%>%
       mutate(NW_Left = .[[2]] * Population * .[[4]],
              NW_Right = Population * (1-.[[4]]),
              W_Left = .[[2]] * Population * (1-.[[4]]),
@@ -52,6 +62,14 @@ for (n in 39:42) {
 # Save results
 write.csv(allTracts, here("data/Created/Exposure_Ratios_Tracts.csv"))
 
+# Save a spatial file
+sfTracts <- st_read(here("data/NHGIS/US_tract_2019.shp"))%>%
+  select(GISJOIN,GEOID)%>%
+  left_join(allTracts, by = c("GISJOIN" = "GIS_Tract"))%>%
+  st_transform(5070)
+
+st_write(sfTracts, here("data/Created/Spatial/Exposure_Ratios.gpkg"),
+         layer = "ER_Tracts", append = FALSE)
 
 # Calculate Exposure Ratios for Counties
 allCounties <- allbgs%>%
@@ -64,6 +82,7 @@ for (n in 39:42) {
   for (i in 4:10) {
     boyce <- ei%>%
       select(GIS_County, colnames(ei)[2],Population,colnames(ei)[i])%>%
+      drop_na()%>%
       mutate(NW_Left = .[[2]] * Population * .[[4]],
              NW_Right = Population * (1-.[[4]]),
              W_Left = .[[2]] * Population * (1-.[[4]]),
@@ -91,6 +110,15 @@ for (n in 39:42) {
 # Save results
 write.csv(allCounties, here("data/Created/Exposure_Ratios_Counties.csv"))
 
+# Save spatial file
+sfCounties <- st_read(here("data/NHGIS/US_county_2019.shp"))%>%
+  select(GISJOIN, GEOID)%>%
+  left_join(allCounties, by = c("GISJOIN"="GIS_County"))%>%
+  st_transform(5070)
+
+st_write(sfCounties, here("data/Created/Spatial/Exposure_Ratios.gpkg"),
+         layer = "ER_Counties", append = FALSE)
+
 # Calculate Boyce Ratio for States
 allStates <- allbgs%>%
   select(GIS_State)%>%
@@ -102,6 +130,7 @@ for (n in 39:42) {
   for (i in 4:10) {
     boyce <- ei%>%
       select(GIS_State, colnames(ei)[2],Population,colnames(ei)[i])%>%
+      drop_na()%>%
       mutate(NW_Left = .[[2]] * Population * .[[4]],
              NW_Right = Population * (1-.[[4]]),
              W_Left = .[[2]] * Population * (1-.[[4]]),
@@ -127,6 +156,17 @@ for (n in 39:42) {
 }
 # Save results
 write.csv(allStates, here("data/Created/Exposure_Ratios_States.csv"))
+
+# Save spatial data
+sfStates <- st_read(here("data/NHGIS/US_state_2019.shp"))%>%
+  select(GISJOIN,GEOID)%>%
+  left_join(allStates, by = c("GISJOIN" = "GIS_State"))%>%
+  st_transform(5070)
+
+
+st_write(sfStates, here("data/Created/Spatial/Exposure_Ratios.gpkg"),
+         layer = "ER_States", append = FALSE)
+
 
 
 # MSAs - These are done a bit differently as we need to run an intersection on block groups first
@@ -170,6 +210,7 @@ for (n in 39:42) {
   for (i in 4:10) {
     boyce <- ei%>%
       select(GIS_MSA, colnames(ei)[2],Population,colnames(ei)[i])%>%
+      drop_na()%>%
       mutate(NW_Left = .[[2]] * Population * .[[4]],
              NW_Right = Population * (1-.[[4]]),
              W_Left = .[[2]] * Population * (1-.[[4]]),
@@ -196,4 +237,13 @@ for (n in 39:42) {
 # Save Results
 write.csv(allMSAs, here("data/Created/Exposure_Ratios_MSAs.csv"))
 
+# Save spatial Data
+sfMSA <-st_read(here("data/NHGIS/MSAs.gpkg"), layer = "US_cbsa_2019")%>%
+  mutate(Area_Type = substr(NAMELSAD,nchar(NAMELSAD)-9,nchar(NAMELSAD)))%>%
+  select(GISJOIN,GEOID, NAME, ALUBE001, Area_Type)%>%
+  filter(Area_Type == "Metro Area")%>%
+  left_join(allMSAs, by = c("GISJOIN" = "GIS_MSA"))%>%
+  st_transform(5070)
 
+st_write(sfMSA, here("data/Created/Spatial/Exposure_Ratios.gpkg"),
+         layer = "ER_MSAs", append = FALSE)

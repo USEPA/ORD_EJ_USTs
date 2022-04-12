@@ -454,7 +454,8 @@ for (state in states) {
                font = list(family = "sans serif", size = 18, color = 'black'))
 
       dir.create( paste0(here("figures/state",state)), showWarnings = FALSE) # Create folder if it doesn't exist
-      save_image(p, file = paste0(here("figures/state"),"/",state,"/",state,"_",yVar,"_by_",xVar,".png"))
+      dir.create(paste0(here("figures/state"),"/",state,"/Bin_Box_Plots"))
+      save_image(p, file = paste0(here("figures/state"),"/",state,"/Bin_Box_Plots/",state,"_",yVar,"_by_",xVar,".png"))
       
     }
   }
@@ -530,7 +531,8 @@ for(n in 32:38){
              font = list(family = "sans serif", size = 18, color = 'black'))
     
     dir.create( paste0(here("figures/state",state)), showWarnings = FALSE) # Create folder if it doesn't exist
-    save_image(p, file = paste0(here("figures/state"),"/",state,"/",state,"_",yVar,"_by_",xVar,".png"))
+    dir.create(paste0(here("figures/state"),"/",state,"/Bin_Box_Plots"))
+    save_image(p, file = paste0(here("figures/state"),"/",state,"/Bin_Box_Plots/",state,"_",yVar,"_by_",xVar,".png"))
     
   }
 }

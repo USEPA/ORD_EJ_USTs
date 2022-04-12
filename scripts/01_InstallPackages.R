@@ -3,7 +3,8 @@
 
 # All packages needed
 packages <- c("tidyverse","plotly","sf","here","vroom","scales","trend",
-              "rstatix","aod","colorspace","foreach","doParallel","reticulate")
+              "rstatix","aod","colorspace","foreach","doParallel","reticulate",
+              "mapsf","USAboundaries","tigris")
 
 # Create empty data frame to write to
 pkgCheck <- data.frame()
