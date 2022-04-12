@@ -158,7 +158,6 @@ for (st in unique(counties$state_name)) {
                                                ustLabel,"_",ejLabel,".png"), width = 1200,
               theme = "default", expandBB = c(.3,1,0,.5)) 
     mf_theme("dark",bg = "#1f3e6e", fg = "#808080")
-    mf_shadow(stateFilt, col = "grey10",cex = .1, add = TRUE)
     mf_map(stateFilt, var = var, type = "choro",
            pal = "Dark Mint", 
            breaks = c(0,.9,1.1,1.5,3,10),
@@ -200,80 +199,89 @@ hawaii <- counties%>%
 pr <- counties%>%
   filter(state_name == "Puerto Rico")
 
-
-# Make a map
-mf_export(x = conus, filename = here("figures/national/Exposure_Ratio.png"), width = 1200,
-          theme = "default", expandBB = c(.3,0,0,.5)) 
-mf_shadow(conus, col = "grey10",cex = .1, add = TRUE)
-mf_map(conus, var = "Boyce_Med_Facility_km_MINORPCT", type = "choro",
-       pal = "Dark Mint", 
-       breaks = c(0,.9,1.1,1.5,3,10), 
-       #nbreaks = 6, 
-       leg_title = "Boyce Ratio", 
-       #leg_val_rnd = -2, 
-       add = FALSE,
-       leg_pos = "left")
-mf_inset_on(x = pr, fig = c(.78,.9,.2,0.3))
-# display the target municipality
-mf_map(pr, var = "Boyce_Med_Facility_km_MINORPCT", type = "choro",
-       pal = "Dark Mint", 
-       breaks = c(0,.85,.95,1.5,3,10), 
-       #nbreaks = 6, 
-       leg_title = "Boyce Ratio", 
-       #leg_val_rnd = -2, 
-       add = FALSE,leg_pos = NA)
-#mf_title("Puerto Rico", pos = "left", tab = TRUE, cex = .2, line = 1, inner = TRUE)
-
-# close the inset
-mf_inset_off()
-mf_inset_on(x = pr, fig = c(.02,.24,.05,0.28))
-mf_map(alaska, var = "Boyce_Med_Facility_km_MINORPCT", type = "choro",
-       pal = "Dark Mint", 
-       breaks = c(0,.85,.95,1.5,3,10), 
-       #nbreaks = 6, 
-       leg_title = "Boyce Ratio", 
-       #leg_val_rnd = -2, 
-       add = FALSE,leg_pos = NA)
-
-mf_inset_off()
-# Hawaii
-mf_inset_on(x = pr, fig = c(.25,.38,.03,0.23))
-mf_map(hawaii, var = "Boyce_Med_Facility_km_MINORPCT", type = "choro",
-       pal = "Dark Mint", 
-       breaks = c(0,.85,.95,1.5,3,10), 
-       #nbreaks = 6, 
-       leg_title = "Boyce Ratio", 
-       #leg_val_rnd = -2, 
-       add = FALSE,
-       leg_pos = NA)
-
-mf_inset_off()
-mf_title("Facilities to Minorities Boyce Ratio")
-
-dev.off()
-
-
-# Make maps for each state
-
-## Determine projection for each state
-utm <- st_read(here("data/UTM_Zones.shp"))
-
-statesUTM <- us_states()%>%
-  st_transform(3857)%>%
-  st_centroid()%>%
-  st_intersection(utm)
-
-ggplot(statesUTM)+
-  geom_sf(aes(color = ZONE))
-
-
-# Maps for each state
-
-# Tract maps by state
-tracts <- st_read(here("data/Created/Spatial/Exposure_Ratios.gpkg"), layer = "ER_Tracts")
-
-# County maps by state
-
-for (n in 3:30) {
+for(var in unique(erCols$Name)){
+  
+  # Generate labels
+  parse <- str_split(var, "_", simplify = TRUE)
+  
+  if(parse[3]=="Facility"){
+    ustLabel <- "Facilities"
+  } else {
+    ustLabel <- parse[3]
+  }
+  
+  if(parse[5] == "MINORPCT"){
+    ejLabel <- "Minority"
+  } else if(parse[5] == "LESSHSPCT"){
+    ejLabel <-  "Less than High School"
+  } else if(parse[5] == "UNDER5PCT"){
+    ejLabel <-  "Under 5"
+  } else if(parse[5] == "VULEOPCT"){
+    ejLabel <-  "Minority & Low-Income"
+  } else if(parse[5] == "LOWINCPCT"){
+    ejLabel <- "Low-Income"
+  } else if(parse[5] == "LINGISOPCT"){
+    ejLabel <- "Linguistically Isolated"
+  } else if(parse[5] == "OVER64PCT"){
+    ejLabel <- "Over 64"
+  }
+  
+  # Make a map
+  mf_export(x = conus,
+            filename = paste0(here("figures/national/Exposure_Ratios"),"/National_ER_",ustLabel,"_",ejLabel,".png"),
+            width = 1200,
+            theme = "default", expandBB = c(.3,0,0,.5)) 
+  mf_theme("dark",bg = "#1f3e6e", fg = "#808080")
+  mf_map(conus, var = var, type = "choro",
+         pal = "Dark Mint", 
+         breaks = c(0,.9,1.1,1.5,3,10), 
+         #nbreaks = 6, 
+         leg_title = "Boyce Ratio", 
+         #leg_val_rnd = -2, 
+         add = FALSE,
+         leg_pos = "left")
+  mf_inset_on(x = pr, fig = c(.78,.9,.2,0.3))
+  # display the target municipality
+  mf_map(pr, var = var, type = "choro",
+         pal = "Dark Mint", 
+         breaks = c(0,.85,.95,1.5,3,10), 
+         #nbreaks = 6, 
+         leg_title = "Exposure Ratio", 
+         #leg_val_rnd = -2, 
+         add = FALSE,leg_pos = NA)
+  #mf_title("Puerto Rico", pos = "left", tab = TRUE, cex = .2, line = 1, inner = TRUE)
+  
+  # close the inset
+  mf_inset_off()
+  mf_inset_on(x = pr, fig = c(.02,.24,.05,0.28))
+  mf_map(alaska, var = var, type = "choro",
+         pal = "Dark Mint", 
+         breaks = c(0,.85,.95,1.5,3,10), 
+         #nbreaks = 6, 
+         leg_title = "Exposure Ratio", 
+         #leg_val_rnd = -2, 
+         add = FALSE,leg_pos = NA)
+  
+  mf_inset_off()
+  # Hawaii
+  mf_inset_on(x = pr, fig = c(.25,.38,.03,0.23))
+  mf_map(hawaii, var = var, type = "choro",
+         pal = "Dark Mint", 
+         breaks = c(0,.85,.95,1.5,3,10), 
+         #nbreaks = 6, 
+         leg_title = "Exposure Ratio", 
+         #leg_val_rnd = -2, 
+         add = FALSE,
+         leg_pos = NA)
+  
+  mf_inset_off()
+  mf_title(paste0(ustLabel, " / km2 : Percent ",ejLabel," Exposure Ratio (Counties)"),
+           cex = 2)
+  
+  dev.off()
   
 }
+
+
+
+# Make National Maps
