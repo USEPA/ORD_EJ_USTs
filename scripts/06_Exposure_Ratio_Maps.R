@@ -198,6 +198,9 @@ hawaii <- counties%>%
   st_transform("+proj=aea +lat_1=8 +lat_2=18 +lat_0=13 +lon_0=-157 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs")
 pr <- counties%>%
   filter(state_name == "Puerto Rico")
+cs <- sb%>%
+  filter(!state_name %in% c("Puerto Rico","Alaska","Hawaii"))%>%
+  st_transform(5070)
 
 for(var in unique(erCols$Name)){
   
@@ -230,17 +233,34 @@ for(var in unique(erCols$Name)){
   mf_export(x = conus,
             filename = paste0(here("figures/national/Exposure_Ratios"),"/National_ER_",ustLabel,"_",ejLabel,".png"),
             width = 1200,
-            theme = "default", expandBB = c(.3,0,0,.5)) 
-  mf_theme("dark",bg = "#1f3e6e", fg = "#808080")
-  mf_map(conus, var = var, type = "choro",
+            theme = "dark", expandBB = c(.3,.2,0,.1))
+  #mf_shadow(cs, add = TRUE,col = "grey50")
+  # Hawaii
+  mf_inset_on(x = pr, fig = c(.2,.6,.02,.35)) #c(X1,X2,Y1,Y2)
+  mf_map(hawaii, var = var, type = "choro",
          pal = "Dark Mint", 
-         breaks = c(0,.9,1.1,1.5,3,10), 
+         breaks = c(0,.85,.95,1.5,3,10), 
          #nbreaks = 6, 
-         leg_title = "Boyce Ratio", 
+         leg_title = "Exposure Ratio", 
          #leg_val_rnd = -2, 
          add = FALSE,
+         leg_pos = NA)
+  
+  mf_inset_off()
+  mf_map(conus, var = var, type = "choro",
+         pal = "Dark Mint", 
+         breaks = c(0,.9,1.1,1.5,3,10),
+         leg_title = "Exposure Ratio", 
+         add = TRUE,
          leg_pos = "left")
-  mf_inset_on(x = pr, fig = c(.78,.9,.2,0.3))
+  mf_map(x = cs,
+         type = "base",
+         col = "black",
+         add = TRUE,
+         lwd = 2,
+         )
+  
+  mf_inset_on(x = pr, fig = c(.78,.9,.1,0.2))
   # display the target municipality
   mf_map(pr, var = var, type = "choro",
          pal = "Dark Mint", 
@@ -253,7 +273,7 @@ for(var in unique(erCols$Name)){
   
   # close the inset
   mf_inset_off()
-  mf_inset_on(x = pr, fig = c(.02,.24,.05,0.28))
+  mf_inset_on(x = pr, fig = c(.02,.3,.05,0.35)) #c(X1,X2,Y1,Y2)
   mf_map(alaska, var = var, type = "choro",
          pal = "Dark Mint", 
          breaks = c(0,.85,.95,1.5,3,10), 
@@ -262,26 +282,15 @@ for(var in unique(erCols$Name)){
          #leg_val_rnd = -2, 
          add = FALSE,leg_pos = NA)
   
+  #fig = c(.25,.38,.03,0.23)
   mf_inset_off()
-  # Hawaii
-  mf_inset_on(x = pr, fig = c(.25,.38,.03,0.23))
-  mf_map(hawaii, var = var, type = "choro",
-         pal = "Dark Mint", 
-         breaks = c(0,.85,.95,1.5,3,10), 
-         #nbreaks = 6, 
-         leg_title = "Exposure Ratio", 
-         #leg_val_rnd = -2, 
-         add = FALSE,
-         leg_pos = NA)
   
-  mf_inset_off()
   mf_title(paste0(ustLabel, " / km2 : Percent ",ejLabel," Exposure Ratio (Counties)"),
            cex = 2)
+  mf_credits(txt = paste0("Generated on: ",Sys.Date(),", Data Sources: EJScreen (2020) & USTFinder"),
+             pos = "bottomright")
   
   dev.off()
   
 }
 
-
-
-# Make National Maps
