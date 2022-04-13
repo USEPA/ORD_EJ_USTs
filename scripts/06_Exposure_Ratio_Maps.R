@@ -182,9 +182,6 @@ for (st in unique(counties$state_name)) {
   print(paste0("Completed ", st, " at: ", Sys.time()))
 }
 
-
-
-
 # National Maps
 
 # Break geographies for insets
@@ -294,3 +291,117 @@ for(var in unique(erCols$Name)){
   
 }
 
+# Maps for MSAs (tracts)
+stFips <- fips%>%
+  select(state,state_code,state_name)%>%
+  distinct()
+
+msa <- st_read(here("data/Created/Spatial/Exposure_Ratios.gpkg"), layer = "ER_MSAs")%>%
+  mutate(state = substr(NAME, nchar(NAME)-1,nchar(NAME)))%>%
+  left_join(stFips)
+
+# Determine which tracts are in which MSA
+tractMSA <- tracts%>%
+  st_centroid()%>%
+  st_intersection(msa)%>%
+  st_drop_geometry()%>%
+  select(GISJOIN,GISJOIN.1)
+
+colnames(tractMSA) <- c("Tract_ID","MSA_ID")
+
+# Create folders
+for (st in unique(msa$state_name)) {
+  dir.create(paste0(here("figures/MSA"),"/",st))
+}
+
+for (n in 1:nrow(msa)) {
+  metro <- msa[n,]
+  
+  prj <- statesUTM%>%
+    filter(statefp == metro$state_code)
+  
+  metroUTM <- metro%>%
+    st_transform(prj$code)%>%
+    st_cast("MULTILINESTRING")
+  
+  metroDf <- metroUTM%>%
+    st_drop_geometry()
+  
+  # Get tracts for the MSA
+  tractIDs <- tractMSA%>%
+    filter(MSA_ID == metroUTM$GISJOIN[1])
+  tractSub <- tracts%>%
+    filter(GISJOIN %in% tractIDs$Tract_ID)%>%
+    st_transform(prj$code)
+  
+  for(var in unique(erCols$Name)){
+    
+    # Generate labels
+    parse <- str_split(var, "_", simplify = TRUE)
+    
+    if(parse[3]=="Facility"){
+      ustLabel <- "Facilities"
+    } else {
+      ustLabel <- parse[3]
+    }
+    
+    if(parse[5] == "MINORPCT"){
+      ejLabel <- "Minority"
+    } else if(parse[5] == "LESSHSPCT"){
+      ejLabel <-  "Less than High School"
+    } else if(parse[5] == "UNDER5PCT"){
+      ejLabel <-  "Under 5"
+    } else if(parse[5] == "VULEOPCT"){
+      ejLabel <-  "Minority & Low-Income"
+    } else if(parse[5] == "LOWINCPCT"){
+      ejLabel <- "Low-Income"
+    } else if(parse[5] == "LINGISOPCT"){
+      ejLabel <- "Linguistically Isolated"
+    } else if(parse[5] == "OVER64PCT"){
+      ejLabel <- "Over 64"
+    }
+    
+    # Coordinates for annotation
+    bb <- st_bbox(metroUTM)
+    xcoord <- as.numeric(((bb[3]-bb[1])/2)+bb[1])
+    ycoord <- as.numeric(bb[2]-1000)
+    
+    # Make a map
+    mf_export(x = metroUTM,
+              filename = paste0(here("figures/MSA"),"/",metro$state_name,"/",substr(metro$NAME,1,nchar(metro$NAME)-4),"_ER_",ustLabel,"_",ejLabel,".png"),
+              width = 1200,
+              theme = "dark", expandBB = c(.3,.2,0,.1))
+    
+    mf_map(tractSub, var = var, type = "choro",
+           pal = "Dark Mint", 
+           breaks = c(0,.9,1.1,1.5,3,10),
+           leg_title = "Exposure Ratio", 
+           add = TRUE,
+           leg_pos = "left")
+    mf_map(x = metroUTM,
+           type = "base",
+           col = "black",
+           add = TRUE,
+           lwd = 2,
+    )
+    
+    mf_annotation(x = c(xcoord,ycoord),
+                  txt = paste0("MSA Exposure Ratio: ",metroDf[,var],"\n",
+                               "Population: ",metroDf$ALUBE001),
+                  col_arrow = NA,
+                  cex = 2,
+                  col_txt = "white",
+                  pos = "bottomright",
+                  halo = TRUE,
+                  bg = "black")
+    
+    mf_title(paste0(metro$NAME,": ",ustLabel, " / km2 : Percent ",ejLabel," Exposure Ratio (Tracts)"),
+             cex = 2)
+    mf_credits(txt = paste0("Projection: NAD83 (HARN) UTM Zone ",prj$ZONE,"N, ","Generated on: ",Sys.Date(),", Data Sources: EJScreen (2020) & USTFinder"),
+               pos = "bottomleft")
+    
+    dev.off()
+    
+  }
+  print(paste0("Completed ", round(100*(n/nrow(msa)),2),"% at: ", Sys.time()))
+}
