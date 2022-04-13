@@ -230,7 +230,7 @@ for(var in unique(erCols$Name)){
   mf_export(x = conus,
             filename = paste0(here("figures/national/Exposure_Ratios"),"/National_ER_",ustLabel,"_",ejLabel,".png"),
             width = 1200,
-            theme = "dark", expandBB = c(.3,.2,0,.1))
+            theme = "dark", expandBB = c(.3,.3,0.1,.1))
   #mf_shadow(cs, add = TRUE,col = "grey50")
   # Hawaii
   mf_inset_on(x = pr, fig = c(.2,.6,.02,.35)) #c(X1,X2,Y1,Y2)
@@ -298,7 +298,9 @@ stFips <- fips%>%
 
 msa <- st_read(here("data/Created/Spatial/Exposure_Ratios.gpkg"), layer = "ER_MSAs")%>%
   mutate(state = substr(NAME, nchar(NAME)-1,nchar(NAME)))%>%
-  left_join(stFips)
+  left_join(stFips)%>%
+  separate(NAME, into = c("Metro","State_FIPS"), sep = ",")%>%
+  mutate(Metro = str_replace_all(Metro,"/","-"))
 
 # Determine which tracts are in which MSA
 tractMSA <- tracts%>%
@@ -308,6 +310,9 @@ tractMSA <- tracts%>%
   select(GISJOIN,GISJOIN.1)
 
 colnames(tractMSA) <- c("Tract_ID","MSA_ID")
+
+# Filter out maps we already created
+
 
 # Create folders
 for (st in unique(msa$state_name)) {
@@ -368,7 +373,7 @@ for (n in 1:nrow(msa)) {
     
     # Make a map
     mf_export(x = metroUTM,
-              filename = paste0(here("figures/MSA"),"/",metro$state_name,"/",substr(metro$NAME,1,nchar(metro$NAME)-4),"_ER_",ustLabel,"_",ejLabel,".png"),
+              filename = paste0(here("figures/MSA"),"/",metro$state_name,"/",metro$Metro,"_ER_",ustLabel,"_",ejLabel,".png"),
               width = 1200,
               theme = "dark", expandBB = c(.3,.2,0,.1))
     
@@ -395,7 +400,8 @@ for (n in 1:nrow(msa)) {
                   halo = TRUE,
                   bg = "black")
     
-    mf_title(paste0(metro$NAME,": ",ustLabel, " / km2 : Percent ",ejLabel," Exposure Ratio (Tracts)"),
+    mf_title(paste0(metro$Metro,":\n",ustLabel, " / km2 : Percent ",ejLabel," Exposure Ratio (Tracts)"),
+             line = 2,
              cex = 2)
     mf_credits(txt = paste0("Projection: NAD83 (HARN) UTM Zone ",prj$ZONE,"N, ","Generated on: ",Sys.Date(),", Data Sources: EJScreen (2020) & USTFinder"),
                pos = "bottomleft")
