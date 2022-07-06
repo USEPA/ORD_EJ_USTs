@@ -1,4 +1,4 @@
-# Statistical Measures of Inequality in Disadvantaged Communities to Underground Storage Tanks
+# Statistical Measures of Inequality in Low-Income and Communities of Color from Underground Storage Tanks
 
 ## Code and Analysis
 
