@@ -126,8 +126,9 @@ df%>%
                                 "Tanks: ",Tanks,"<br>",
                                 "Releases: ",Releases))
 
-write.csv(df,here("projects/EJ/Article/data/BlkGrps_Tanks_to_Releases.csv"))
-df <- read.csv(here("projects/EJ/Article/data/BlkGrps_Tanks_to_Releases.csv"))
+vroom_write(df,here("data/Created/BlkGrps_Tanks_to_Releases.csv"),delim = ",")
+#df <- vroom(here("data/Created/BlkGrps_Tanks_to_Releases.csv"))
+
 # Plot minority vs release / tanks ratio
 sub <- df%>%
   filter(Tanks>0 & Releases>0)
@@ -135,7 +136,7 @@ sub <- df%>%
 fit <- lm(Releases/Tanks ~ P_MINORPCT, data = sub)
 
 plot_ly(sub)%>%
-  add_markers(x = ~Pct_Minority, y = ~Releases/Tanks,
+  add_markers(x = ~P_MINORPCT, y = ~Releases/Tanks,
               hovertext = ~paste(name," County (",state_abbr,") - ",Year,"<br>",
                                  "Tanks: ",Tanks,"<br>",
                                  "Releases: ",Releases))%>%
@@ -210,6 +211,35 @@ p2 <- ggplot(avg)+
   labs(x = "Percentile Low-Income", y = "Avg Releases / Tanks", title = "Reported Releases to Active Tanks (Block Group)")
 
 ggsave(plot = p2,here("projects/EJ/Article/figures/Releases_to_tanks_Low_Income.png"),device = "png", height = 4, units = "in")
+
+
+# Run a Mann-Kendall Test
+library(trend)
+library(aod)
+
+rtMK_MN <- avg%>%
+  mutate(R2T_Ratio = Avg_Releases/Avg_Tanks)%>%
+  group_by(Min_Bin)%>%
+  mutate(Median_RT = median(R2T_Ratio))%>%
+  ungroup()%>%
+  select(Min_Bin, Median_RT)%>%
+  distinct()%>%
+  arrange(Min_Bin)
+
+ts <- ts(rtMK_MN$Median_RT, start=1, end=10, frequency=1)
+mk <- mk.test(ts)
+ss <- sens.slope(ts)
+
+
+
+
+
+
+
+
+
+
+
 
 # Loop through by state
 for(state in unique(avg$STATE_NAME)){
