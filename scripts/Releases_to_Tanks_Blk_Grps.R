@@ -127,7 +127,7 @@ df%>%
                                 "Releases: ",Releases))
 
 vroom_write(df,here("data/Created/BlkGrps_Tanks_to_Releases.csv"),delim = ",")
-#df <- vroom(here("data/Created/BlkGrps_Tanks_to_Releases.csv"))
+df <- vroom(here("data/Created/BlkGrps_Tanks_to_Releases.csv"))
 
 # Plot minority vs release / tanks ratio
 sub <- df%>%
@@ -217,6 +217,7 @@ ggsave(plot = p2,here("projects/EJ/Article/figures/Releases_to_tanks_Low_Income.
 library(trend)
 library(aod)
 
+# Minority
 rtMK_MN <- avg%>%
   mutate(R2T_Ratio = Avg_Releases/Avg_Tanks)%>%
   group_by(Min_Bin)%>%
@@ -226,14 +227,28 @@ rtMK_MN <- avg%>%
   distinct()%>%
   arrange(Min_Bin)
 
-ts <- ts(rtMK_MN$Median_RT, start=1, end=10, frequency=1)
-mk <- mk.test(ts)
-ss <- sens.slope(ts)
+tsm <- ts(rtMK_MN$Median_RT, start=1, end=10, frequency=1)
+mkm <- mk.test(tsm)
+ssm <- sens.slope(tsm)
 
+mkm$p.value
+ssm$estimates
+# Low-income
+rtMK_LI <- avg%>%
+  mutate(R2T_Ratio = Avg_Releases/Avg_Tanks)%>%
+  group_by(LI_Bin)%>%
+  mutate(Median_RT = median(R2T_Ratio))%>%
+  ungroup()%>%
+  select(LI_Bin, Median_RT)%>%
+  distinct()%>%
+  arrange(LI_Bin)
 
+tsl <- ts(rtMK_LI$Median_RT, start=1, end=10, frequency=1)
+mkl <- mk.test(tsl)
+ssl <- sens.slope(tsl)
 
-
-
+mkl$p.value
+ssl$estimates
 
 
 
